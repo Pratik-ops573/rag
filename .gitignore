@@ -1,5 +1,7 @@
+.env
 .venv/
 __pycache__/
-.env
+**/__pycache__/
 *.pyc
 palm_mind.db
+.pytest_cache/

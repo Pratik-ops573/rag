@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.booking import Booking
-from app.schemas.booking import BookingData
+from app.schemas.booking import BookingData, BookingExtraction
 from app.services.llm_service import LLMService
 
 
@@ -16,37 +16,21 @@ class BookingService:
     def extract_booking_data(
         self,
         message: str,
-    ) -> BookingData | None:
+        booking_in_progress: bool = False,
+    ) -> BookingExtraction:
         """
-        Extract and validate booking information from
-        a natural-language message.
+        Extract booking information from a natural-language message.
+
+        The result may contain partial booking information.
         """
 
         extracted_data = self.llm_service.extract_booking_data(
-            message
+            message=message,
+            booking_in_progress=booking_in_progress,
         )
 
-        if not extracted_data.get("is_booking"):
-            return None
-
-        required_fields = (
-            "name",
-            "email",
-            "booking_date",
-            "booking_time",
-        )
-
-        if any(
-            extracted_data.get(field) is None
-            for field in required_fields
-        ):
-            return None
-
-        return BookingData(
-            name=extracted_data["name"],
-            email=extracted_data["email"],
-            booking_date=extracted_data["booking_date"],
-            booking_time=extracted_data["booking_time"],
+        return BookingExtraction(
+            **extracted_data
         )
 
     def create_booking(

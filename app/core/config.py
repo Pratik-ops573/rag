@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     qdrant_url: str
     qdrant_api_key: str
 
-    gemini_api_key: str
+    openrouter_api_key: str
+    openrouter_model: str = "openrouter/free"
 
     redis_url: str
 
