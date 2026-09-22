@@ -1,0 +1,69 @@
+import json
+
+import redis
+
+from app.core.config import settings
+
+
+class MemoryService:
+    """Service responsible for Redis-based chat memory."""
+
+    def __init__(self) -> None:
+        """Initialize the Redis client."""
+        self.client = redis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+        )
+
+    def test_connection(self) -> bool:
+        """Check whether the application can connect to Redis."""
+        return bool(self.client.ping())
+
+    def save_message(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+    ) -> None:
+        """Save a single chat message to Redis."""
+
+        key = f"chat:{session_id}"
+
+        message = {
+            "role": role,
+            "content": content,
+        }
+
+        self.client.rpush(
+            key,
+            json.dumps(message),
+        )
+
+    def get_history(
+        self,
+        session_id: str,
+    ) -> list[dict[str, str]]:
+        """Retrieve the complete chat history for a session."""
+
+        key = f"chat:{session_id}"
+
+        messages = self.client.lrange(
+            key,
+            0,
+            -1,
+        )
+
+        return [
+            json.loads(message)
+            for message in messages
+        ]
+
+    def clear_history(
+        self,
+        session_id: str,
+    ) -> None:
+        """Delete chat history for a session."""
+
+        key = f"chat:{session_id}"
+
+        self.client.delete(key)
