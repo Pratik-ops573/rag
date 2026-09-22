@@ -97,3 +97,35 @@ class VectorService:
             )
 
         return results
+
+    def insert_chunks(
+        self,
+        vectors: list[list[float]],
+        document_id: str,
+        chunks: list[str],
+    ) -> int:
+        """Store multiple embedded chunks in Qdrant."""
+        if len(vectors) != len(chunks):
+            raise ValueError("vectors and chunks must have the same length.")
+
+        points: list[PointStruct] = []
+
+        for index, (vector, chunk) in enumerate(zip(vectors, chunks)):
+            points.append(
+                PointStruct(
+                    id=str(uuid4()),
+                    vector=vector,
+                    payload={
+                        "document_id": document_id,
+                        "chunk_index": index,
+                        "text": chunk,
+                    },
+                )
+            )
+
+        self.client.upsert(
+            collection_name=self.COLLECTION_NAME,
+            points=points,
+        )
+
+        return len(points)
