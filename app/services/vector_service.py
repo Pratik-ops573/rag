@@ -1,7 +1,11 @@
+from uuid import uuid4
+
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.core.config import settings
+
+from typing import Any
 
 
 class VectorService:
@@ -37,3 +41,59 @@ class VectorService:
                     distance=Distance.COSINE,
                 ),
             )
+
+    def insert_chunk(
+        self,
+        vector: list[float],
+        document_id: str,
+        chunk_index: int,
+        text: str,
+    ) -> str:
+        """Store one embedded document chunk in Qdrant."""
+        point_id = str(uuid4())
+
+        point = PointStruct(
+            id=point_id,
+            vector=vector,
+            payload={
+                "document_id": document_id,
+                "chunk_index": chunk_index,
+                "text": text,
+            },
+        )
+
+        self.client.upsert(
+            collection_name=self.COLLECTION_NAME,
+            points=[point],
+        )
+
+        return point_id
+
+    def search_similar_chunks(
+        self,
+        query_vector: list[float],
+        limit: int = 3,
+    ) -> list[dict[str, Any]]:
+        """Search Qdrant for chunks similar to the query vector."""
+        response = self.client.query_points(
+            collection_name=self.COLLECTION_NAME,
+            query=query_vector,
+            limit=limit,
+            with_payload=True,
+        )
+
+        results: list[dict[str, Any]] = []
+
+        for point in response.points:
+            payload = point.payload or {}
+
+            results.append(
+                {
+                    "score": point.score,
+                    "document_id": payload.get("document_id"),
+                    "chunk_index": payload.get("chunk_index"),
+                    "text": payload.get("text"),
+                }
+            )
+
+        return results
