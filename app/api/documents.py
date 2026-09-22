@@ -1,5 +1,8 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from typing import Annotated
 
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+
+from app.services.chunking_service import ChunkingStrategy, chunk_text
 from app.utils.text_extraction import (
     extract_text_from_pdf,
     extract_text_from_txt,
@@ -13,8 +16,12 @@ router = APIRouter(
 
 @router.post("/upload")
 async def upload_document(
-    file: UploadFile = File(...),
-) -> dict[str, str]:
+    file: Annotated[UploadFile, File(...)],
+    chunking_strategy: Annotated[
+        ChunkingStrategy,
+        Query(description="Chunking strategy to use."),
+    ] = "recursive",
+) -> dict[str, object]:
 
     if not file.filename:
         raise HTTPException(
@@ -56,8 +63,16 @@ async def upload_document(
             detail="No text could be extracted from the document.",
         )
 
+    chunks = chunk_text(
+        text=text,
+        strategy=chunking_strategy,
+    )
+
     return {
         "filename": file.filename,
         "file_type": file_extension,
-        "text": text,
+        "chunking_strategy": chunking_strategy,
+        "total_characters": len(text),
+        "chunks_created": len(chunks),
+        "chunks": chunks,
     }
