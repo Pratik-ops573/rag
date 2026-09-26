@@ -1,6 +1,4 @@
-# Palm Mind RAG Backend
-
-A backend project built for the Palm Mind AI assignment.
+# RAG Backend
 
 This project uses FastAPI to build a simple RAG system where users can upload PDF/TXT documents and ask questions about them.
 
